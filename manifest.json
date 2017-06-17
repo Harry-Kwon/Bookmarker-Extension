@@ -1,0 +1,19 @@
+{
+	"manifest_version": 2,
+
+	"name": "Bookmarker",
+	"description": "This omnibox extension bookmarks open tabs",
+	"version": "1.0",
+
+	"omnibox": { "keyword":"bm"},
+
+	"background": {
+		"persistent": false,
+		"scripts": ["background.js"]
+	},
+
+	"permissions": [
+		"tabs",
+		"bookmarks"
+	]
+}
