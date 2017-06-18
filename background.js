@@ -1,13 +1,27 @@
-chrome.omnibox.onInputEntered.addListener(
-	function(text) {
-    console.log("entered text: " + text);
-    var str = text;
+chrome.omnibox.onInputEntered.addListener(function(text) {
+	console.log("entered text: " + text);
+	var str = text;
 
-    var modifier = parseModifier(str);
-    var folder = parseFolder(str); 
+	var modifier = parseModifier(str);
+	var folderName = parseFolder(str);
 
+	getFolder(folderName, function(folder) {
+		getTabs(modifier, function(tabs) {
+				console.log(tabs[0].title);
+				for (var i=0; i<tabs.length; i++) {
+					addTabToFolder(tabs[i], folder);
+				}
+		});
+	});
 });
 
+function addTabToFolder(tab, folder) {
+	console.log(tab);
+	chrome.bookmarks.create({"parentId":folder.id,
+							"index":0,
+							"title":tab.title,
+							"url": tab.url});
+}
 
 //parse string for folder name
 function parseFolder(str) {
@@ -16,52 +30,51 @@ function parseFolder(str) {
 		folder = str.slice(str.indexOf(" "));
 	}
 	console.log("folder: " + folder);
+    return folder;
 }
 
 
 //parse string for modifier for current tab, window, or all
 function parseModifier(str) {
     var modifier = "";
-    if(str.length == 0) {
+    if(str=="") {
         modifier = "current";
-        bookmarkCurrentTab();
     } else if(str.match('^win')) {
         modifier = "window";
     } else if(str.match('^all')) {
         modifier = "all";
     }
     console.log("modifier: " + modifier);
+    return modifier;
 }
 
-function bookmarkCurrentTab() {
-	getCurrentTab(bookmarkTab);
+function getFolder(folder, callback) {
+	if(folder=="") {
+		chrome.bookmarks.get("1", function(nodes) {
+			callback(nodes[0]);
+		});
+	} else {
+		createFolder(folder, callback);
+	}
 }
 
-function bookmarkTab(tab) {
-	var url = tab.url;
-	console.assert(typeof url == 'string', 'tab.url should be a string');
-
-	var title = tab.title;
-	console.assert(typeof title == 'string', 'tab.title should be a string');
-
-	chrome.bookmarks.create(
-		{'parentId': '1',
-		'index': 0,
-		'title': title,
-		'url': url},
-		console.log("added url: " + url)
-	);
+//creates a folder and passes the BookmarkTreeNode to the callback function
+function createFolder(folder, callback) {
+    chrome.bookmarks.create({"parentId":"1", "index":0, "title":folder}, function(result) {
+        callback(result);
+});
 }
 
-function getCurrentTab(callback) {
-	var queryInfo = {
-		active: true,
-		currentWindow: true
-	};
-	
-	chrome.tabs.query(queryInfo, function(tabs) {
-		var tab = tabs[0];
+//gets tabs specified by the modifier "", "window", or "all"
+function getTabs(modifier, callback) {
+	var queryInfo = {}; //default is all
+	if(modifier == "window") {
+		queryInfo["currentWindow"] = true;
+	} else if (modifier == "current") {
+		queryInfo["active"] = true;
+		queryInfo["currentWindow"] = true;
+	}
+	console.log(queryInfo);
 
-		callback(tab);
-	});
+	chrome.tabs.query(queryInfo, callback);
 }
