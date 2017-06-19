@@ -37,7 +37,7 @@ function parseFolder(str) {
 //parse string for modifier for current tab, window, or all
 function parseModifier(str) {
     var modifier = "";
-    if(str=="") {
+    if(str=="" || str.match('^this')) {
         modifier = "current";
     } else if(str.match('^win')) {
         modifier = "window";

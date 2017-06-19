@@ -15,7 +15,7 @@ This extension can be installed here at the Chrome Web Store.
 [\<Tabs>] [\<Folder>]
 * A blank command with no Tabs or Folder will add the current page to the bookmarks bar
 * \<Tabs>
-  * '' (empty): Current tab
+  * '' or 'this' (empty): Current tab
   * 'win': Tabs in current window
   * 'all': All open tabs
 * \<Folder>
