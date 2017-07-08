@@ -228,7 +228,11 @@ function createFolder(folder, callback) {
 //recursively removes the node
 function removeNode(node, callback) {
     console.log("removing node: " + node.title);
-    chrome.bookmarks.removeTree(node.id, callback);
+    if(node.id == "1") {
+        return;
+    } else {
+        chrome.bookmarks.removeTree(node.id, callback);
+    }
 }
 
 //recursively opens the node in new tabs
