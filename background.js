@@ -1,7 +1,12 @@
 /*** 
   EVENT LISTENERS 
  ***/
-chrome.omnibox.onInputEntered.addListener(function(text) {
+chrome.omnibox.onInputEntered.addListener(onInputEnteredCall);
+
+/***
+  EVENT CALLS
+  ***/
+function onInputEnteredCall(text) {
     console.log("entered text: " + text);
     if(text) {
         var command = parseCommand(text);
@@ -11,7 +16,7 @@ chrome.omnibox.onInputEntered.addListener(function(text) {
             var modifier = parseAddModifier(text);
             var folderName = parseAddFolder(text);
 
-            getFolder(folderName, function(folder) {
+            getNode(folderName, createNode, function(folder) {
                 getTabs(modifier, function(tabs) {
                         console.log(tabs[0].title);
                         for (var i=0; i<tabs.length; i++) {
@@ -20,14 +25,20 @@ chrome.omnibox.onInputEntered.addListener(function(text) {
                 });
             });
         } else if(command == "remove") {
-           var folderName = parseFolder(text) 
+            var folderName = parseRemoveFolder(text);
+            console.log(folderName);
+            getNode(folderName, nullNode, function(node) {
+                removeNode(node, function(){
+                    //callback after removing node
+                });
+            });
         } else if(command == "open") {
             //
         } else {
             console.log("invalid command: " + command);
         }
     }
-});
+}
 
 /***
   COMMAND PARSING
@@ -58,20 +69,22 @@ function parseAddFolder(str) {
     return folder;
 }
 
-//adds the tab to the folder node
-function addTabToFolder(tab, folder) {
-    console.log(tab);
-    console.log(folder);
-    chrome.bookmarks.create({"parentId":folder.id,
-                            "index":0,
-                            "title":tab.title,
-                            "url": tab.url});
+function parseRemoveFolder(str) {
+    var params = str.split(" ");
+    var folder = "";
+    if(params.length >=2) {
+        folder = params[1];
+    }
+    return folder;
 }
 
+/***
+  LOOKUP
+  ***/
+
 //calls callback on a bookmark node cooresponding to the folder name or path given
-function getFolder(folder, callback) {
-    console.log(createNode);
-    findNode(folder, createNode, function(node) {
+function getNode(folder, no_node_cont, callback) {
+    findNode(folder, no_node_cont, function(node) {
         if(node==null) {
             createFolder(folder, callback);
         } else {
@@ -134,14 +147,6 @@ function findNode_r(path, node, no_node_cont, callback) {
     }
 }
 
-//creates a folder and passes the BookmarkTreeNode to the callback function
-function createFolder(folder, callback) {
-    console.log("creating folder: " + folder);
-    chrome.bookmarks.create({"parentId":"1", "index":0, "title":folder}, function(result) {
-        callback(result);
-    });
-}
-
 //gets tabs specified by the modifier "", "window", or "all"
 function getTabs(modifier, callback) {
     var queryInfo = {}; //default is all
@@ -151,7 +156,31 @@ function getTabs(modifier, callback) {
         queryInfo["active"] = true;
         queryInfo["currentWindow"] = true;
     }
-    console.log(queryInfo);
-
     chrome.tabs.query(queryInfo, callback);
+}
+
+/***
+  ACTUATORS
+  ***/
+
+//creates a folder and passes the BookmarkTreeNode to the callback function
+function createFolder(folder, callback) {
+    console.log("creating folder: " + folder);
+    chrome.bookmarks.create({"parentId":"1", "index":0, "title":folder}, function(result) {
+        callback(result);
+    });
+}
+
+function removeNode(node, callback) {
+    console.log("removing node: " + node.title);
+    chrome.bookmarks.removeTree(node.id, callback);
+}
+
+//adds the tab to the folder node
+function addTabToFolder(tab, folder) {
+    console.log("Adding tab: " + tab.title + " to folder: " + folder.title);
+    chrome.bookmarks.create({"parentId":folder.id,
+                            "index":0,
+                            "title":tab.title,
+                            "url": tab.url});
 }
