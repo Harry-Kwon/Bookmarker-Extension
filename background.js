@@ -26,14 +26,18 @@ function onInputEnteredCall(text) {
             });
         } else if(command == "remove") {
             var folderName = parseRemoveFolder(text);
-            console.log(folderName);
             getNode(folderName, nullNode, function(node) {
                 removeNode(node, function(){
                     //callback after removing node
                 });
             });
         } else if(command == "open") {
-            //
+            var folderName = parseOpenFolder(text);
+            getNode(folderName, nullNode, function(node) {
+                openNode(node, function(tab) {
+                    //do something with opened tab
+                });
+            });
         } else {
             console.log("invalid command: " + command);
         }
@@ -73,6 +77,15 @@ function parseRemoveFolder(str) {
     var params = str.split(" ");
     var folder = "";
     if(params.length >=2) {
+        folder = params[1];
+    }
+    return folder;
+}
+
+function parseOpenFolder(str) {
+    var params = str.split(" ");
+    var folder = "";
+    if(params.length >= 2) {
         folder = params[1];
     }
     return folder;
@@ -163,6 +176,15 @@ function getTabs(modifier, callback) {
   ACTUATORS
   ***/
 
+//adds the tab to the folder node
+function addTabToFolder(tab, folder) {
+    console.log("Adding tab: " + tab.title + " to folder: " + folder.title);
+    chrome.bookmarks.create({"parentId":folder.id,
+                            "index":0,
+                            "title":tab.title,
+                            "url": tab.url});
+}
+
 //creates a folder and passes the BookmarkTreeNode to the callback function
 function createFolder(folder, callback) {
     console.log("creating folder: " + folder);
@@ -171,16 +193,27 @@ function createFolder(folder, callback) {
     });
 }
 
+//recursively removes the node
 function removeNode(node, callback) {
     console.log("removing node: " + node.title);
     chrome.bookmarks.removeTree(node.id, callback);
 }
 
-//adds the tab to the folder node
-function addTabToFolder(tab, folder) {
-    console.log("Adding tab: " + tab.title + " to folder: " + folder.title);
-    chrome.bookmarks.create({"parentId":folder.id,
-                            "index":0,
-                            "title":tab.title,
-                            "url": tab.url});
+//recursively opens the node in new tabs
+function openNode(node, callback) {
+    if(node == null) {
+        callback(null);
+        return;
+    }
+
+    console.log("opening node: " + node.title);
+    if(node.url != null) {
+        var tabProperties = {"url":node.url, "active":true};
+        chrome.tabs.create(tabProperties, callback);
+    }
+    chrome.bookmarks.getChildren(node.id, function(nodes) {
+        for(var i=0; i<nodes.length; i++) {
+            openNode(nodes[i], callback);
+        }
+    });
 }
