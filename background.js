@@ -1,11 +1,36 @@
+var manualUrl = "https://github.com/Harry-Kwon/Bookmarker-Extension/blob/master/README.md";
+
 /*** 
   EVENT LISTENERS 
  ***/
+chrome.omnibox.onInputStarted.addListener(onInputStartedCall);
+chrome.omnibox.onInputChanged.addListener(onInputChangedCall);
 chrome.omnibox.onInputEntered.addListener(onInputEnteredCall);
-
 /***
   EVENT CALLS
   ***/
+function onInputStartedCall() {
+    console.log("input started");
+    var initMsg = "Available commands: add, remove, open.";
+    chrome.omnibox.setDefaultSuggestion({"description": initMsg});
+}
+
+function onInputChangedCall(text) {
+    console.log("input changed: " + text);
+    var inputMsg = "Available commands: add, remove, open.";
+    var command = parseCommand(text);
+    if(command == "add") {
+        inputMsg = "add &lt;this | window | all&gt; &lt;name of folder (optional)&gt; Description: Add specified tabs to the specified folder in the bookmarks bar. Bookmark is added to the bookmarks bar if folder is not specified.";
+    } else if(command == "remove") {
+        inputMsg = "remove &lt;name of folder or bookmark&gt; Description: Recursively remove the folder or bookmark.";
+    } else if(command == "open") {
+        inputMsg = "open &lt;name of folder or bookmark&gt; Description: Open the folder or bookmark in the current window.";
+    } else if(command == "help") {
+        inputMsg = "opens the manual";
+    }
+    chrome.omnibox.setDefaultSuggestion({"description": inputMsg});
+}
+
 function onInputEnteredCall(text) {
     console.log("entered text: " + text);
     if(text) {
@@ -38,7 +63,9 @@ function onInputEnteredCall(text) {
                     //do something with opened tab
                 });
             });
-        } else {
+        } else if(command == "help") {
+            openManual();
+        }else {
             console.log("invalid command: " + command);
         }
     }
@@ -120,9 +147,15 @@ function createNode(title, parent_node, callback) {
 // path - string with names of nodes/folders delimited by "." ex.) folder1.folder2.folder3.bookmark
 // callback should take a node corresponding to the path
 function findNode(path, no_node_cont, callback) {
-    chrome.bookmarks.get("1", function(nodes) {
-        findNode_r(path.split("."), nodes[0], no_node_cont, callback);
-    });
+    if(path == "") {
+        chrome.bookmarks.get("1", function(nodes) {
+            callback(nodes[0]);
+        });
+    } else {
+        chrome.bookmarks.get("1", function(nodes) {
+            findNode_r(path.split("."), nodes[0], no_node_cont, callback);
+        });
+    }
 }
     
 //findNode-r(path, node, callback) function that recursively searches for node in tree starting from root node
@@ -131,7 +164,6 @@ function findNode_r(path, node, no_node_cont, callback) {
     //base case where path is empty
     console.log("path: "+path);
     if(path.length == 0) {
-        console.log("a");
         callback(node);
     } else if(node==null) {
         console.log("b");
@@ -216,4 +248,9 @@ function openNode(node, callback) {
             openNode(nodes[i], callback);
         }
     });
+}
+
+function openManual() {
+    var tabProperties = {"url":manualUrl, "active":true};
+    chrome.tabs.create(tabProperties, function(tab) {});
 }
